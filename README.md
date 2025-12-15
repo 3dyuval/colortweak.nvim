@@ -108,3 +108,28 @@ patterns = {
 ```lua
 require("colortweak").apply()  -- reapply transforms
 ```
+
+## Create Highlight Groups
+
+Create new highlight groups derived from existing ones with HSL transforms.
+Re-applies automatically on colorscheme change.
+
+```lua
+local tweak = require("colortweak.tweak")
+
+-- Single
+tweak.hl("MyHighlight", "DiagnosticInfo", { h = 120, s = 1.5 })
+
+-- Multiple
+tweak.hl({
+  ClaudeNormal = { "DiagnosticInfo", { h = 120, s = 1.5 } },
+  ClaudeThinking = { "DiagnosticHint", { h = 120, s = 1.5 } },
+})
+
+-- Get definition without registering
+local hl_def = tweak.get("DiagnosticInfo", { h = 120 })
+
+-- Cleanup
+tweak.remove("MyHighlight")  -- unregister single
+tweak.clear()                -- unregister all
+```
