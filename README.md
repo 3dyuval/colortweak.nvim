@@ -150,46 +150,17 @@ patterns = {
 require("colortweak").apply()  -- reapply transforms
 ```
 
-## For Plugin makers! `colortweak.tweak` API
+## For Plugin Makers
 
-For creating **new highlight groups** derived from existing ones (not **tweaking** in-place).
-Useful for plugins that need custom highlights based on the current theme.
+Create highlight groups derived from existing ones:
 
 ```lua
 local tweak = require("colortweak.tweak")
 
--- Create a new group derived from an existing one
-tweak.hl("SnacksPickerDir", "Directory", { l = 1.2 })
-
--- Create multiple at once
-tweak.hl({
-  ClaudeNormal = { "DiagnosticInfo", { h = 120, s = 1.5 } },
-  ClaudeThinking = { "DiagnosticHint", { l = 0.8 } },
-})
-
--- These automatically re-apply on colorscheme change
-
-
--- Dimmed highlights for inactive/unfocused elements
-tweak.hl({
-  InactiveStatusLine = { "StatusLine", { l = 0.6, s = 0.5 } },
-  GhostText = { "Comment", { l = 0.7 } },
-})
-
--- Accent colors for plugin UI
-tweak.hl({
-  MyPluginBorder = { "FloatBorder", { h = 30 } },      -- warmer border
-  MyPluginTitle = { "Title", { s = 1.4, l = 1.1 } },   -- more vibrant title
-})
-
--- Get transformed definition without registering
-local hl_def = tweak.get("DiagnosticInfo", { h = 120 })
-vim.api.nvim_set_hl(0, "MyGroup", hl_def)
-
--- Cleanup
-tweak.remove("ClaudeNormal")  -- unregister one
-tweak.clear()                 -- unregister all
+tweak.hl("MyPluginBorder", "FloatBorder", { h = 30, l = 1.1 })
 ```
+
+See [docs/recipes.md](docs/recipes.md) for full API and theme integration examples.
 
 ## TODO
 
