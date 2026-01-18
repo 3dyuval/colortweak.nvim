@@ -2,7 +2,25 @@
 
 HSL transforms for Neovim highlight groups.
 Per-colorscheme configuration.
-Tweak colors in file type level!
+Tweak colors at the filetype level!
+
+## Understanding Neovim Colors
+
+If you've ever wanted to tweak a color in Neovim and found yourself lost, you're not alone. The [r/neovim wiki](https://www.reddit.com/r/neovim/wiki/index/plugin-colors/) has an excellent deep dive, but here's the gist.
+
+Colors in Neovim aren't applied directly to text. Instead, everything goes through **highlight groups** - named definitions like `Comment`, `Function`, or `Normal` that map to actual colors and styles. When a colorscheme says "comments should be gray and italic," it's setting the `Comment` highlight group. When treesitter parses your code and finds a comment, it tags that text with `Comment`, and Neovim looks up what that means. Run `:highlight` to see all defined groups.
+
+You'll also see groups prefixed with `@` like `@comment` or `@function.python` - these are treesitter capture groups (not CSS at-rules). The `@` just denotes treesitter-specific highlights, and the suffix indicates language scope. Run `:Inspect` on any text to see which groups apply.
+
+This _indirection_ is what makes colorschemes work - similar to how CSS classes let you define `.comment { color: gray }` once and apply it everywhere. Because highlight group names are _standardized_, a single colorscheme can provide consistent colors across every language without knowing anything about them specifically.
+
+A plugin like Snacks creates its own groups (`SnacksPickerBorder`, `SnacksPickerTitle`) and links them to standard ones like `FloatBorder` or `Title`. The linking means your colorscheme's choices flow through automatically - but you can always override the link if you want something different. Run `:highlight SnacksPickerBorder` to see where a group links to.
+
+## Where colortweak fits in
+
+The traditional way to customize is either hardcoding hex values (which ignore your colorscheme) or linking to a different group (which might not be quite right either).
+
+colortweak offers a third option: derive colors from existing ones. Think of it like CSS's `color: hsl(from var(--base) h s calc(l * 1.2))` - you're not picking a fixed value, you're saying "take this and adjust it." Instead of hardcoding a hex or hoping another group looks right, you can say "take `FloatBorder` but shift the hue 30 degrees" or "make `Comment` 20% lighter."
 
 ## HSL Transform values
 
@@ -20,99 +38,52 @@ If you're **tweaking** a single colorscheme plugin, you can do it directly in th
   lazy = false,
   opts = {
     ["nord"] = {
-      patterns = { SnacksPickerDir = { l = 1.2 } },
+      ft = {
+        markdown = { s = 1.2 },  -- more saturated
+      },
     },
+    -- Global config (applies to all colorschemes)
     global = {
-      patterns = { Comment = { l = 0.8 } },
+      patterns = {
+        ["Comment"] = { l = 0.8 },
+      },
     },
   },
 }
 ```
 
-If you're **tweaking** multiple colorscheme plugins, lazy.nvim merges `opts` tables so each theme file can add its own key:
+## Customization Options
+
+If you're like me and often switch between colorschemes, **tweaking** each colorscheme in centralized config is now possible:
 
 ```lua
--- lua/plugins/nord.lua
+-- lua/plugins/colorschemes.lua
 return {
-  { "shaunsingh/nord.nvim" }, --or using deps = {  "3dyuval/colortweak.nvim"   }
+  { "shaunsingh/nord.nvim", enabled = true },
+  { "3dyuval/retro-fallout.nvim", enabled = true },
   {
     "3dyuval/colortweak.nvim",
     opts = {
       ["nord"] = {
-        patterns = { SnacksPickerDir = { l = 1.2 } },
+        patterns = { Comment = { l = 0.8 } }, -- lighter comments
       },
-    },
-  },
-}
---- todo: add a OR here and tweak nord.Options in setup function
-```
-
-
-```lua
--- lua/plugins/retro-fallout.lua
-return {
-  { "3dyuval/retro-fallout.nvim" },
-  {
-    "3dyuval/colortweak.nvim",
-    opts = {
       ["retro-fallout"] = {
-        ft = { yaml = { h = -60 } },
+        patterns = { NormalFloat = { s = 0.8 } }, -- less saturated floats
       },
     },
   },
 }
-
 ```
 
-## Usage
+## Filetype Transforms
+
+As a designer, I feel some files should feel a bit different. Project-level settings in YAML should trigger a different gut-level response. Having a way to shift hues slightly just for YAML makes it feel exactly like it should. Run `:set ft?` to see the current filetype:
 
 ```lua
-require("colortweak").setup({
-  ["retro-fallout"] = {   -- only applies when that theme is active
-    ft = {
-      yaml = { h = -60 },       -- yummy yaml
-      markdown = { h = 100 },   -- touch of md
-    },
-    patterns = {
-      ["Comment"] = { l = 0.7 },-- comments should be sparse, making them lighter makes them annoying - as they should be!
-    },
+opts = {
+  ["my-theme"] = {
+    ft = { yaml = { h = -60 } },
   },
-
-  ["nord"] = {
-    ft = {
-      markdown = { s = 1.2 },  -- more saturated
-    },
-  },
-
-  -- Global config (applies to all colorschemes)
-  global = {
-    patterns = {
-      ["Comment"] = { l = 0.8 },
-    },
-  },
-})
-```
-
-## Options
-
-### Per-colorscheme
-
-Keys matching `vim.g.colors_name` apply only when that colorscheme is active:
-
-```lua
-["retro-fallout"] = {
-  ft = { ... },
-  patterns = { ... },
-}
-```
-
-### `global`
-
-Applies to all colorschemes. Colorscheme-specific config merges on top:
-
-```lua
-global = {
-  ft = { yaml = { h = -30 } },
 }
 ```
 
@@ -122,10 +93,10 @@ Filetype-specific transforms. Applies to `@*.{ft}` highlight groups:
 
 ```lua
 ft = {
-  yaml = { h = -60 },           -- shifts @*.yaml groups
-  markdown = { h = 100 },       -- shifts @markup.* groups
+  yaml = { h = -60 },      -- shifts @*.yaml groups
+  markdown = { h = 100 },  -- shifts @markup.* groups
   json = {
-    patterns = {                -- or use explicit patterns
+    patterns = {           -- or use explicit patterns
       ["@string.json"] = { h = 50 },
     },
   },
@@ -147,7 +118,7 @@ patterns = {
 ## API
 
 ```lua
-require("colortweak").apply()  -- reapply transforms
+require("colortweak").apply() -- reapply transforms
 ```
 
 ## For Plugin Makers
